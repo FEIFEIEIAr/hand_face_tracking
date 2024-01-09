@@ -31,32 +31,31 @@ def process_frame(img):
         landmark_drawing_spec=None,
         connection_drawing_spec=mp_drawing_styles
         .get_default_face_mesh_contours_style())
-    
-    hand_landmark_drawing_spec = mp_drawing.DrawingSpec(thickness=5, circle_radius=5)
-    hand_connection_drawing_spec = mp_drawing.DrawingSpec(thickness=10, circle_radius=10)
-
+    # mp_drawing.draw_landmarks(
+    #     img,
+    #     results.face_landmarks,
+    #     mp_holistic.FACEMESH_TESSELATION,
+    #     landmark_drawing_spec=None,
+    #     connection_drawing_spec=mp_drawing_styles
+    #     .get_default_face_mesh_tesselation_style())
     mp_drawing.draw_landmarks(
         img,
-        landmark_list=results.left_hand_landmarks,
-        connections=mp_holistic.HAND_CONNECTIONS,
-        landmark_drawing_spec=hand_landmark_drawing_spec,
-        connection_drawing_spec=hand_connection_drawing_spec
-        .get_default_face_mesh_contours_style())
-    mp_drawing.draw_landmarks(
-        img,
-        landmark_list=results.right_hand_landmarks,
-        connections=mp_holistic.HAND_CONNECTIONS,
-        landmark_drawing_spec=hand_landmark_drawing_spec,
-        connection_drawing_spec=hand_connection_drawing_spec
-        .get_default_face_mesh_contours_style())
-    
-    mp_drawing.draw_landmarks(
-        img,
-        results.pose_landmarks,
-        mp_holistic.POSE_CONNECTIONS,
+        results.left_hand_landmarks,
+        mp_holistic.HAND_CONNECTIONS,
         landmark_drawing_spec=mp_drawing_styles
-        .get_default_pose_landmarks_style())
+        .get_default_hand_landmarks_style())
+    mp_drawing.draw_landmarks(
+        img,
+        results.right_hand_landmarks,
+        mp_holistic.HAND_CONNECTIONS,
+        landmark_drawing_spec=mp_drawing_styles
+        .get_default_hand_landmarks_style())
+    # TODO: 使用类似于hand_tracking中的方法来标记眼睛等部位
+    end_time = time.time()  # 记录结束时间
+    FPS = 1/(end_time - start_time)  # 计算每秒处理图像帧数
 
+    # 在图像上写FPS数值，参数依次为：图片，添加的文字，左上角坐标，字体，字体大小，颜色，字体粗细
+    img = cv2.putText(img, 'FPS: '+str(int(FPS)), (25, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
     return img
 
 def main():

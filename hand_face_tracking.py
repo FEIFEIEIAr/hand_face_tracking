@@ -8,19 +8,20 @@ cap = cv2.VideoCapture(1)   # 0 for webcam, 1 for external camera
 mp_hands = mp.solutions.hands
 mp_face_mesh = mp.solutions.face_mesh
 
-hands = mp_hands.Hands(static_image_mode=False,  # Video or image
-                       max_num_hands=2,
-                       min_detection_confidence=0.7,
-                       min_tracking_confidence=0.5)
+hands = mp_hands.Hands(
+    static_image_mode=False,  # Video or image
+    max_num_hands=2,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.5)
 face_mesh = mp_face_mesh.FaceMesh(
-    running_mode='VIDEO',
-    min_detection_confidence=0.5, 
-    min_tracking_confidence=0.5
-    )
+    min_detection_confidence=0.5,
+    min_tracking_confidence=0.5,
+    refine_landmarks=True,  # 使用Attention mesh
+)
 
 # 导入绘图函数
-mpDraw = mp.solutions.drawing_utils
-
+mp_drawing = mp.solutions.drawing_utils
+mp_drawing_styles = mp.solutions.drawing_styles
 
 def process_frame(img):
     # 记录该帧开始处理的时间
@@ -41,11 +42,11 @@ def process_frame(img):
             hand = results.multi_hand_landmarks[hand_idx]
 
             # 可视化landmark连线
-            mpDraw.draw_landmarks(img, hand, mp_hands.HAND_CONNECTIONS)
+            mp_drawing.draw_landmarks(img, hand, mp_hands.HAND_CONNECTIONS)
 
             # 记录手的信息
             hand_label = results.multi_handedness[hand_idx].classification[0].label
-            hand_info = f"{hand_idx}-{hand_label}"
+            hand_info = f"{hand_idx} {hand_label}\n"
             
             # 获取手腕根部深度坐标
             z0 = hand.landmark[0].z
@@ -57,7 +58,7 @@ def process_frame(img):
                 z = hand.landmark[i].z
                 depth = z0 - z
 
-                radius = max(int(5 * (1 + depth*8)), 0)  # 用圆的大小反映深度
+                radius = max(int(5 * (1 + depth*10)), 0)  # 用圆的大小反映深度
 
                 if i == 0:  # 手腕
                     img = cv2.circle(img, (x, y), radius, (0, 0, 255), -1)
@@ -72,31 +73,43 @@ def process_frame(img):
                 if i in [3, 7, 11, 15, 19]:  # 第二指节
                     img = cv2.circle(img, (x, y), radius, (195, 236, 249), -1)
                 if i in [1, 5, 9, 13, 17]:  # 指根
-                    img = cv2.circle(img, (x, y), radius, (226, 238, 251), -1)
+                    img = cv2.circle(img, (x, y), radius, (211, 194, 209), -1)
+        
+        # 将信息显示在图像上
+        img = cv2.putText(img, hand_info, (25, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
+        img = cv2.putText(img, index_finger_tip_info, (25, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
+                    
     # 处理面部信息
     face_results = face_mesh.process(img_RGB)
     if face_results.multi_face_landmarks:
         for face_landmarks in face_results.multi_face_landmarks:
-            # 绘制面部关键点
-            mpDraw.draw_landmarks(img, face_landmarks,
-                                  mp_face_mesh.FACEMESH_CONTOURS)
-
-            # 标记眼睛、鼻子和嘴巴
-            for landmark_id in [mp_face_mesh.FACEMESH_LEFT_EYE, mp_face_mesh.FACEMESH_RIGHT_EYE,
-                                mp_face_mesh.FACEMESH_NOSE_TIP, mp_face_mesh.FACEMESH_UPPER_LIP, mp_face_mesh.FACEMESH_LOWER_LIP]:
-                landmark = face_landmarks.landmark[landmark_id]
-                x = int(landmark.x * w)
-                y = int(landmark.y * h)
-                cv2.circle(img, (x, y), 3, (0, 255, 0), -1)
-        # 将信息显示在图像上
-        img = cv2.putText(img, hand_info, (25, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1.5)
-        img = cv2.putText(img, index_finger_tip_info, (25, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1.5)
+            # mp_drawing.draw_landmarks(
+            #     image=img,
+            #     landmark_list=face_landmarks,
+            #     connections=mp_face_mesh.FACEMESH_TESSELATION,
+            #     landmark_drawing_spec=None,
+            #     connection_drawing_spec=mp_drawing_styles
+            #     .get_default_face_mesh_tesselation_style())
+            mp_drawing.draw_landmarks(
+                image=img,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_CONTOURS,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles
+                .get_default_face_mesh_contours_style())
+            mp_drawing.draw_landmarks(
+                image=img,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_IRISES,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles
+                .get_default_face_mesh_iris_connections_style())
 
         end_time = time.time()  # 记录结束时间
         FPS = 1/(end_time - start_time)  # 计算每秒处理图像帧数
 
         # 在图像上写FPS数值，参数依次为：图片，添加的文字，左上角坐标，字体，字体大小，颜色，字体粗细
-        img = cv2.putText(img, 'FPS: '+str(int(FPS)), (25, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1.5)
+        img = cv2.putText(img, 'FPS: '+str(int(FPS)), (25, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
     return img
 
 

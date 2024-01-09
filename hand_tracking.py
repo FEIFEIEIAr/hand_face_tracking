@@ -7,12 +7,13 @@ cap = cv2.VideoCapture(1)
 # 导入solution
 mp_hands = mp.solutions.hands
 # 导入模型
-hands = mp_hands.Hands(static_image_mode=False,        # 是静态图片还是连续视频帧
-                       max_num_hands=2,                # 最多检测几只手
-                       min_detection_confidence=0.7,   # 置信度阈值
-                       min_tracking_confidence=0.5)    # 追踪阈值
+hands = mp_hands.Hands(
+    static_image_mode=False,  # Video or image
+    max_num_hands=2,
+    min_detection_confidence=0.7,
+    min_tracking_confidence=0.5)  
 # 导入绘图函数
-mpDraw = mp.solutions.drawing_utils
+mp_drawing = mp.solutions.drawing_utils
 
 
 def process_frame(img):
@@ -24,7 +25,6 @@ def process_frame(img):
 
     # mediapipe模型处理图片
     results = hands.process(img_RGB)
-
     if results.multi_hand_landmarks:  # 如果有检测到手
         hand_info = ''
         index_finger_tip_info = ''
@@ -34,11 +34,11 @@ def process_frame(img):
             hand = results.multi_hand_landmarks[hand_idx]
 
             # 可视化landmark连线
-            mpDraw.draw_landmarks(img, hand, mp_hands.HAND_CONNECTIONS)
+            mp_drawing.draw_landmarks(img, hand, mp_hands.HAND_CONNECTIONS)
 
             # 记录手的信息
             hand_label = results.multi_handedness[hand_idx].classification[0].label
-            hand_info = f"{hand_idx}-{hand_label}"
+            hand_info = f"{hand_idx} {hand_label}\n"
             
             # 获取手腕根部深度坐标
             z0 = hand.landmark[0].z
@@ -50,7 +50,7 @@ def process_frame(img):
                 z = hand.landmark[i].z
                 depth = z0 - z
 
-                radius = max(int(6 * (1 + depth*8)), 0)  # 用圆的大小反映深度
+                radius = max(int(5 * (1 + depth*10)), 0)  # 用圆的大小反映深度
 
                 if i == 0:  # 手腕
                     img = cv2.circle(img, (x, y), radius, (0, 0, 255), -1)
@@ -65,17 +65,17 @@ def process_frame(img):
                 if i in [3, 7, 11, 15, 19]:  # 第二指节
                     img = cv2.circle(img, (x, y), radius, (195, 236, 249), -1)
                 if i in [1, 5, 9, 13, 17]:  # 指根
-                    img = cv2.circle(img, (x, y), radius, (226, 238, 251), -1)
+                    img = cv2.circle(img, (x, y), radius, (211, 194, 209), -1)
         
         # 将信息显示在图像上
-        img = cv2.putText(img, hand_info, (25, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1.5)
-        img = cv2.putText(img, index_finger_tip_info, (25, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1.5)
+        img = cv2.putText(img, hand_info, (25, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
+        img = cv2.putText(img, index_finger_tip_info, (25, 150), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
 
         end_time = time.time()  # 记录结束时间
         FPS = 1/(end_time - start_time)  # 计算每秒处理图像帧数
 
         # 在图像上写FPS数值，参数依次为：图片，添加的文字，左上角坐标，字体，字体大小，颜色，字体粗细
-        img = cv2.putText(img, 'FPS: '+str(int(FPS)), (25, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1.5)
+        img = cv2.putText(img, 'FPS: '+str(int(FPS)), (25, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 255), 1)
     return img, results.multi_hand_landmarks
 
 

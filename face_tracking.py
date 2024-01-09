@@ -6,8 +6,6 @@ mp_face_mesh = mp.solutions.face_mesh
 
 # 初始化面部模型
 face_mesh = mp_face_mesh.FaceMesh(
-    running_mode='VIDEO',
-    max_num_faces=1,
     min_detection_confidence=0.5, 
     min_tracking_confidence=0.5,
     refine_landmarks=True,  # 使用Attention mesh
@@ -15,7 +13,7 @@ face_mesh = mp_face_mesh.FaceMesh(
 
 # 导入绘图函数
 mp_drawing = mp.solutions.drawing_utils
-# mp_drawing_styles = mp.solutions.drawing_styles
+mp_drawing_styles = mp.solutions.drawing_styles
 
 def process_frame(img):
     start_time = time.time()  # 记录开始时间
@@ -28,39 +26,27 @@ def process_frame(img):
     required_landmarks = []
     if face_results.multi_face_landmarks:
         for face_landmarks in face_results.multi_face_landmarks:
-            # 绘制面部关键点
-            mp_drawing.draw_landmarks(img, face_landmarks,
-                                  mp_face_mesh.FACEMESH_CONTOURS)
-
-            # 标记眼睛、鼻子和嘴巴
-            for landmark_id in [mp_face_mesh.FACEMESH_LEFT_EYE, mp_face_mesh.FACEMESH_RIGHT_EYE,
-                                mp_face_mesh.FACEMESH_NOSE_TIP, mp_face_mesh.FACEMESH_UPPER_LIP, mp_face_mesh.FACEMESH_LOWER_LIP]:
-                landmark = face_landmarks.landmark[landmark_id]
-                required_landmarks.append(landmark)
-                x = int(landmark.x * w)
-                y = int(landmark.y * h)
-                cv2.circle(img, (x, y), 3, (0, 255, 0), -1)
-        # mp_drawing.draw_landmarks(
-        #     image=img,
-        #     landmark_list=face_landmarks,
-        #     connections=mp_face_mesh.FACEMESH_TESSELATION,
-        #     landmark_drawing_spec=None,
-        #     connection_drawing_spec=mp_drawing_styles
-        #     .get_default_face_mesh_tesselation_style())
-        # mp_drawing.draw_landmarks(
-        #     image=img,
-        #     landmark_list=face_landmarks,
-        #     connections=mp_face_mesh.FACEMESH_CONTOURS,
-        #     landmark_drawing_spec=None,
-        #     connection_drawing_spec=mp_drawing_styles
-        #     .get_default_face_mesh_contours_style())
-        # mp_drawing.draw_landmarks(
-        #     image=img,
-        #     landmark_list=face_landmarks,
-        #     connections=mp_face_mesh.FACEMESH_IRISES,
-        #     landmark_drawing_spec=None,
-        #     connection_drawing_spec=mp_drawing_styles
-        #     .get_default_face_mesh_iris_connections_style())
+            mp_drawing.draw_landmarks(
+                image=img,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_TESSELATION,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles
+                .get_default_face_mesh_tesselation_style())
+            mp_drawing.draw_landmarks(
+                image=img,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_CONTOURS,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles
+                .get_default_face_mesh_contours_style())
+            mp_drawing.draw_landmarks(
+                image=img,
+                landmark_list=face_landmarks,
+                connections=mp_face_mesh.FACEMESH_IRISES,
+                landmark_drawing_spec=None,
+                connection_drawing_spec=mp_drawing_styles
+                .get_default_face_mesh_iris_connections_style())
         scaler = 1
         end_time = time.time()  # 记录结束时间
         FPS = 1/(end_time - start_time)  # 计算每秒处理图像帧数
